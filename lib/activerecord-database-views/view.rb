@@ -9,11 +9,19 @@ module ActiveRecord::DatabaseViews
     end
 
     def drop!
-      call_sql!("DROP VIEW IF EXISTS #{name} CASCADE;")
+      if materialize? then
+        call_sql!("DROP MATERIALIZED VIEW IF EXISTS #{name} CASCADE;")
+      else
+        call_sql!("DROP VIEW IF EXISTS #{name} CASCADE;")
+      end
     end
 
     def load!
-      call_sql!("CREATE OR REPLACE VIEW #{name} AS #{sql};")
+      if materialize? then
+        call_sql!("CREATE MATERIALIZED VIEW #{name} AS #{sql};")
+      else
+        call_sql!("CREATE OR REPLACE VIEW #{name} AS #{sql};")
+      end
     end
 
     def name
@@ -27,7 +35,11 @@ module ActiveRecord::DatabaseViews
     private
 
     def basename
-      @basename ||= File.basename(path, '.sql')
+      @basename ||= File.basename(path, '.sql').chomp('.mat')
+    end
+
+    def materialize?
+      @materialize ||= File.basename(path, '.sql').end_with?('.mat')
     end
 
     def full_path
